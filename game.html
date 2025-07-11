@@ -16,7 +16,7 @@
             height: 100vh; 
             position: relative; 
         }
-        .heart { 
+        .heart, .bomb { 
             position: absolute; 
             font-size: 30px; 
             cursor: pointer; 
@@ -69,7 +69,8 @@
 <body>
     <div id="game"></div>
     <div id="score">0 ❤️</div>
-<auduo id="pop-sound" src="pop.mp3" preload="avto"></auduo> 
+    <audio id="pop-sound" src="pop.mp3" preload="auto"></audio>
+    
     <script>
         let score = 0;
         const colors = ['#ff0000', '#ff69b4', '#ff1493', '#c71585'];
@@ -86,33 +87,39 @@
                 score++;
                 document.getElementById('score').textContent = score + ' ❤️';
                 createExplosion(e.clientX, e.clientY);
+                playSound();
                 heart.remove();
             };
             
             document.getElementById('game').appendChild(heart);
             setTimeout(() => heart.remove(), 5000);
         }
-        function createBomb(){
+        
+        function createBomb() {
             const bomb = document.createElement('div');
             bomb.className = 'bomb';
-            bomb.innerHTML = '💣'
+            bomb.innerHTML = '💣';
             bomb.style.left = Math.random() * 90 + 'vw';
             bomb.style.animationDuration = Math.random() * 2 + 3 + 's';
-            bomb.style.color = colors[Math.floor(Math.random() * colors.length)];
-
-            bomb.onclick = (e) => {
-                score = score - 10;
-                createExplosion(e.clientX, e.clientY);
-                bomb.remove();
-            }
+            bomb.style.color = '#000000';
             
+            bomb.onclick = (e) => {
+                score = Math.max(0, score - 10); // Не позволяем счету быть отрицательным
+                document.getElementById('score').textContent = score + ' ❤️';
+                createExplosion(e.clientX, e.clientY);
+                playSound();
+                bomb.remove();
+            };
+            
+            document.getElementById('game').appendChild(bomb);
+            setTimeout(() => bomb.remove(), 5000);
         }
-
+        
         function playSound() {
             const sound = document.getElementById('pop-sound');
-       sound.currentTime = 0;
-       sound.play();
-     }
+            sound.currentTime = 0;
+            sound.play();
+        }
         
         function createExplosion(x, y) {
             // Основной взрыв
@@ -169,13 +176,13 @@
             requestAnimationFrame(updateParticle);
         }
         
-        // Запуск генерации сердечек
+        // Запуск генерации сердечек и бомб
         setInterval(createHeart, 800);
-        setInterval(createBomb, 200);
+        setInterval(createBomb, 3000); // Бомбы появляются реже
         
         // Для мобильных устройств
         document.getElementById('game').addEventListener('touchstart', (e) => {
-            if (e.target.className === 'heart') {
+            if (e.target.className === 'heart' || e.target.className === 'bomb') {
                 e.preventDefault();
                 const touch = e.touches[0] || e.changedTouches[0];
                 const fakeEvent = {
