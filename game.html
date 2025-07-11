@@ -92,6 +92,21 @@
             document.getElementById('game').appendChild(heart);
             setTimeout(() => heart.remove(), 5000);
         }
+        function createBomb(){
+            const bomb = document.createElement('div');
+            bomb.className = 'bomb';
+            bomb.innerHTML = '💣'
+            bomb.style.left = Math.random() * 90 + 'vw';
+            bomb.style.animationDuration = Math.random() * 2 + 3 + 's';
+            bomb.style.color = colors[Math.floor(Math.random() * colors.length)];
+
+            bomb.onclick = (e) => {
+                score = score - 10;
+                createExplosion(e.clientX, e.clientY);
+                bomb.remove();
+            }
+            
+        }
 
         function playSound() {
             const sound = document.getElementById('pop-sound');
@@ -156,6 +171,7 @@
         
         // Запуск генерации сердечек
         setInterval(createHeart, 800);
+        setInterval(createBomb, 200)
         
         // Для мобильных устройств
         document.getElementById('game').addEventListener('touchstart', (e) => {
