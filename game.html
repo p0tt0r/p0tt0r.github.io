@@ -16,7 +16,7 @@
             height: 100vh; 
             position: relative; 
         }
-        .heart, .bomb { 
+        .heart { 
             position: absolute; 
             font-size: 30px; 
             cursor: pointer; 
@@ -24,6 +24,16 @@
             user-select: none;
             transition: transform 0.2s;
             z-index: 1;
+        }
+        .bomb {
+            position: absolute;
+            font-size: 35px;
+            cursor: pointer;
+            animation: fall linear;
+            user-select: none;
+            transition: transform 0.2s;
+            z-index: 1;
+            filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));
         }
         @keyframes fall { 
             to { transform: translateY(100vh); } 
@@ -69,7 +79,8 @@
 <body>
     <div id="game"></div>
     <div id="score">0 ❤️</div>
-    <audio id="pop-sound" src="pop.mp3" preload="auto"></audio>
+    <audio id="pop-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-arcade-game-jump-coin-216.mp3" preload="auto"></audio>
+    <audio id="bomb-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-explosion-impact-1684.mp3" preload="auto"></audio>
     
     <script>
         let score = 0;
@@ -87,12 +98,14 @@
                 score++;
                 document.getElementById('score').textContent = score + ' ❤️';
                 createExplosion(e.clientX, e.clientY);
-                playSound();
+                playSound('pop');
                 heart.remove();
             };
             
             document.getElementById('game').appendChild(heart);
-            setTimeout(() => heart.remove(), 5000);
+            setTimeout(() => {
+                if (heart.parentNode) heart.remove();
+            }, 5000);
         }
         
         function createBomb() {
@@ -101,50 +114,52 @@
             bomb.innerHTML = '💣';
             bomb.style.left = Math.random() * 90 + 'vw';
             bomb.style.animationDuration = Math.random() * 2 + 3 + 's';
-            bomb.style.color = '#000000';
+            bomb.style.color = '#333';
             
             bomb.onclick = (e) => {
-                score = Math.max(0, score - 10); // Не позволяем счету быть отрицательным
+                score = Math.max(0, score - 10);
                 document.getElementById('score').textContent = score + ' ❤️';
-                createExplosion(e.clientX, e.clientY);
-                playSound();
+                createExplosion(e.clientX, e.clientY, true);
+                playSound('bomb');
                 bomb.remove();
             };
             
             document.getElementById('game').appendChild(bomb);
-            setTimeout(() => bomb.remove(), 5000);
+            setTimeout(() => {
+                if (bomb.parentNode) bomb.remove();
+            }, 5000);
         }
         
-        function playSound() {
-            const sound = document.getElementById('pop-sound');
-            sound.currentTime = 0;
-            sound.play();
+        function playSound(type) {
+            const sound = document.getElementById(type + '-sound');
+            if (sound) {
+                sound.currentTime = 0;
+                sound.play().catch(e => console.log("Audio play failed:", e));
+            }
         }
         
-        function createExplosion(x, y) {
-            // Основной взрыв
+        function createExplosion(x, y, isBomb = false) {
             const explosion = document.createElement('div');
             explosion.className = 'explosion';
             explosion.style.left = (x - 20) + 'px';
             explosion.style.top = (y - 20) + 'px';
-            explosion.style.color = colors[Math.floor(Math.random() * colors.length)];
-            explosion.innerHTML = '❤️';
+            explosion.style.color = isBomb ? '#333' : colors[Math.floor(Math.random() * colors.length)];
+            explosion.innerHTML = isBomb ? '💥' : '❤️';
             document.getElementById('game').appendChild(explosion);
             
-            // Частицы
             for (let i = 0; i < 15; i++) {
-                createParticle(x, y);
+                createParticle(x, y, isBomb);
             }
             
             setTimeout(() => explosion.remove(), 500);
         }
         
-        function createParticle(x, y) {
+        function createParticle(x, y, isBomb = false) {
             const particle = document.createElement('div');
             particle.className = 'particle';
             particle.style.left = x + 'px';
             particle.style.top = y + 'px';
-            particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            particle.style.backgroundColor = isBomb ? '#333' : colors[Math.floor(Math.random() * colors.length)];
             
             const angle = Math.random() * Math.PI * 2;
             const velocity = 2 + Math.random() * 3;
@@ -176,21 +191,23 @@
             requestAnimationFrame(updateParticle);
         }
         
-        // Запуск генерации сердечек и бомб
+        // Запуск генерации
         setInterval(createHeart, 800);
-        setInterval(createBomb, 3000); // Бомбы появляются реже
+        setInterval(createBomb, 3000);
         
-        // Для мобильных устройств
-        document.getElementById('game').addEventListener('touchstart', (e) => {
-            if (e.target.className === 'heart' || e.target.className === 'bomb') {
+        // Обработка касаний
+        document.getElementById('game').addEventListener('touchstart', function(e) {
+            const touch = e.touches[0] || e.changedTouches[0];
+            const element = document.elementFromPoint(touch.clientX, touch.clientY);
+            
+            if (element && (element.className === 'heart' || element.className === 'bomb')) {
                 e.preventDefault();
-                const touch = e.touches[0] || e.changedTouches[0];
                 const fakeEvent = {
                     clientX: touch.clientX,
                     clientY: touch.clientY,
-                    target: e.target
+                    target: element
                 };
-                e.target.onclick(fakeEvent);
+                element.onclick(fakeEvent);
             }
         }, { passive: false });
     </script>
